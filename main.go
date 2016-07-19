@@ -85,7 +85,17 @@ Options:
 		os.Exit(1)
 	}
 
+	if err := generateApibIndex(models, outDir); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
 	for _, model := range models {
+		if err := generateApib(model, outDir); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+
 		if err := generateController(model, outDir); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)

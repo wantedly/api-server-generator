@@ -13,8 +13,10 @@ import (
 const templateDir = "_templates"
 
 var funcMap = template.FuncMap{
-	"pluralize": inflector.Pluralize,
-	"tolower":   strings.ToLower,
+	"apibDefaultValue": apibDefaultValue,
+	"apibType":         apibType,
+	"pluralize":        inflector.Pluralize,
+	"tolower":          strings.ToLower,
 }
 
 var staticFiles = []string{
@@ -23,6 +25,34 @@ var staticFiles = []string{
 	filepath.Join("db", "db.go"),
 	filepath.Join("middleware", "set_db.go"),
 	filepath.Join("server", "server.go"),
+}
+
+func apibDefaultValue(field *ModelField) string {
+	switch field.Type {
+	case "bool":
+		return "false"
+	case "string":
+		return strings.ToUpper(field.Name)
+	case "time.Time":
+		return "`2000-01-01 00:00:00`"
+	case "uint":
+		return "1"
+	}
+
+	return strings.ToUpper(field.Name)
+}
+
+func apibType(field *ModelField) string {
+	switch field.Type {
+	case "bool":
+		return "boolean"
+	case "string":
+		return "string"
+	case "uint":
+		return "number"
+	}
+
+	return "string"
 }
 
 func copyStaticFiles(outDir string) error {
@@ -45,6 +75,74 @@ func copyStaticFiles(outDir string) error {
 		if err := ioutil.WriteFile(dstPath, body, 0644); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func generateApib(model *Model, outDir string) error {
+	body, err := Asset(filepath.Join(templateDir, "docs", "model.apib.tmpl"))
+
+	if err != nil {
+		return err
+	}
+
+	tmpl, err := template.New("apib").Funcs(funcMap).Parse(string(body))
+
+	if err != nil {
+		return err
+	}
+
+	var buf bytes.Buffer
+
+	if err := tmpl.Execute(&buf, model); err != nil {
+		return err
+	}
+
+	dstPath := filepath.Join(outDir, "docs", strings.ToLower(model.Name)+".apib")
+
+	if !fileExists(filepath.Dir(dstPath)) {
+		if err := mkdir(filepath.Dir(dstPath)); err != nil {
+			return err
+		}
+	}
+
+	if err := ioutil.WriteFile(dstPath, buf.Bytes(), 0644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func generateApibIndex(models []*Model, outDir string) error {
+	body, err := Asset(filepath.Join(templateDir, "docs", "index.apib.tmpl"))
+
+	if err != nil {
+		return err
+	}
+
+	tmpl, err := template.New("apib").Funcs(funcMap).Parse(string(body))
+
+	if err != nil {
+		return err
+	}
+
+	var buf bytes.Buffer
+
+	if err := tmpl.Execute(&buf, models); err != nil {
+		return err
+	}
+
+	dstPath := filepath.Join(outDir, "docs", "index.apib")
+
+	if !fileExists(filepath.Dir(dstPath)) {
+		if err := mkdir(filepath.Dir(dstPath)); err != nil {
+			return err
+		}
+	}
+
+	if err := ioutil.WriteFile(dstPath, buf.Bytes(), 0644); err != nil {
+		return err
 	}
 
 	return nil

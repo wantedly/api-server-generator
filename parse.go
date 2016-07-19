@@ -4,10 +4,13 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"reflect"
+	"strconv"
+	"strings"
 )
 
-func parseField(field *ast.Field) map[string]string {
-	fields := make(map[string]string)
+func parseField(field *ast.Field) []*ModelField {
+	fields := []*ModelField{}
 	fieldNames := []string{}
 
 	for _, name := range field.Names {
@@ -29,8 +32,24 @@ func parseField(field *ast.Field) map[string]string {
 		}
 	}
 
+	s, err := strconv.Unquote(field.Tag.Value)
+
+	if err != nil {
+		s = field.Tag.Value
+	}
+
+	jsonName := strings.Split((reflect.StructTag)(s).Get("json"), ",")[0]
+
+	var f *ModelField
+
 	for _, name := range fieldNames {
-		fields[name] = fieldType
+		f = &ModelField{
+			Name:     name,
+			JSONName: jsonName,
+			Type:     fieldType,
+		}
+
+		fields = append(fields, f)
 	}
 
 	return fields
@@ -54,7 +73,7 @@ func parseFile(path string) ([]*Model, error) {
 			}
 
 			for _, spec := range x.Specs {
-				fields := make(map[string]string)
+				fields := []*ModelField{}
 
 				var modelName string
 
@@ -67,8 +86,8 @@ func parseFile(path string) ([]*Model, error) {
 						for _, field := range x3.Fields.List {
 							fs := parseField(field)
 
-							for k, v := range fs {
-								fields[k] = v
+							for _, f := range fs {
+								fields = append(fields, f)
 							}
 						}
 					}

@@ -1,15 +1,7 @@
-FORMAT: 1A
-HOST: http://localhost:8080
-
-# Simple API
-
-This is Simple API document.
-
 # Group Users
+Welcome to the users API. This API provides access to the users service.
 
-Welcome to the Users API. This API provides access to User service.
-
-## Users [/users]
+## users [/users]
 
 ### Create user [POST]
 
@@ -22,7 +14,7 @@ Create a new user
         + admin: false (boolean)
 
 + Response 201 (application/json; charset=utf-8)
-    + Attributes (User)
+    + Attributes (users)
 
 ### Get users [GET]
 
@@ -30,9 +22,9 @@ Returns user list.
 
 + Response 200 (application/json; charset=utf-8)
     + Attributes (array)
-        + (User)
+        + (users)
 
-## User details [/users/{id}]
+## user details [/users/{id}]
 
 + Parameters
     + id: `1` (enum[string]) - The ID of the desired user.
@@ -46,7 +38,7 @@ Returns user list.
 Returns user.
 
 + Response 200 (application/json; charset=utf-8)
-    + Attributes (User)
+    + Attributes (users)
 
 ### Update user [PUT]
 
@@ -59,7 +51,7 @@ Update user.
         + admin: false (boolean)
 
 + Response 200 (application/json; charset=utf-8)
-    + Attributes (User)
+    + Attributes (users)
 
 ### Delete user [DELETE]
 
@@ -68,12 +60,9 @@ Delete user.
 + Response 204
 
 # Data Structures
+## users (object, fixed)
 
-## User (object, fixed)
-
-+ id: 1 (number) - ID
++ id: 1 (number)
 + name: NAME (string)
-+ age: 1 (number)
-+ admin: false (boolean)
-+ created_at: `2000-01-01 00:00:00` (string) - CreatedTime
-+ updated_at: `2000-01-01 00:00:00` (string) - UpdatedTime
++ created_at: `2000-01-01 00:00:00` (string)
++ updated_at: `2000-01-01 00:00:00` (string)

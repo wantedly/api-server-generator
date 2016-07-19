@@ -5,6 +5,22 @@ import (
 	"testing"
 )
 
+func fieldEquals(f1, f2 *ModelField) bool {
+	if f1.Name != f2.Name {
+		return false
+	}
+
+	if f1.JSONName != f2.JSONName {
+		return false
+	}
+
+	if f1.Type != f2.Type {
+		return false
+	}
+
+	return true
+}
+
 func TestParseFile(t *testing.T) {
 	path := filepath.Join("_fixtures", "models.go")
 
@@ -24,20 +40,32 @@ func TestParseFile(t *testing.T) {
 		t.Fatalf("Incorrect model name. expected: User, actual: %s", user.Name)
 	}
 
-	expectedFields := map[string]string{
-		"ID":        "uint",
-		"Name":      "string",
-		"CreatedAt": "time.Time",
-		"UpdatedAt": "time.Time",
+	expectedFields := []*ModelField{
+		&ModelField{
+			Name:     "ID",
+			JSONName: "id",
+			Type:     "uint",
+		},
+		&ModelField{
+			Name:     "Name",
+			JSONName: "name",
+			Type:     "string",
+		},
+		&ModelField{
+			Name:     "CreatedAt",
+			JSONName: "created_at",
+			Type:     "time.Time",
+		},
+		&ModelField{
+			Name:     "UpdatedAt",
+			JSONName: "updated_at",
+			Type:     "time.Time",
+		},
 	}
 
-	for k, v := range user.Fields {
-		if _, ok := expectedFields[k]; !ok {
-			t.Fatalf("Invalid field name: %s", k)
-		}
-
-		if v != expectedFields[k] {
-			t.Fatalf("Invalid field type. expected: %s, actual: %s", expectedFields[k], v)
+	for i, actual := range user.Fields {
+		if !fieldEquals(expectedFields[i], actual) {
+			t.Fatalf("Incorrect field. expected: %#v, actual: %#v", expectedFields[i], actual)
 		}
 	}
 }

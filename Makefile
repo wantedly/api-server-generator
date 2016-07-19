@@ -1,5 +1,5 @@
 BINARY := api-server-generator
-SOURCES := $(find . -name '*.go' -type f | grep -v examples)
+SOURCES := $(shell find . -name '*.go' -type f | grep -v _examples)
 
 LDFLAGS := -ldflags="-w"
 

@@ -10,11 +10,27 @@ import (
 
 var userModel = &Model{
 	Name: "User",
-	Fields: map[string]string{
-		"ID":        "uint",
-		"Name":      "string",
-		"CreatedAt": "time.Time",
-		"UpdatedAt": "time.Time",
+	Fields: []*ModelField{
+		&ModelField{
+			Name:     "ID",
+			JSONName: "id",
+			Type:     "uint",
+		},
+		&ModelField{
+			Name:     "Name",
+			JSONName: "name",
+			Type:     "string",
+		},
+		&ModelField{
+			Name:     "CreatedAt",
+			JSONName: "created_at",
+			Type:     "time.Time",
+		},
+		&ModelField{
+			Name:     "UpdatedAt",
+			JSONName: "updated_at",
+			Type:     "time.Time",
+		},
 	},
 }
 
@@ -49,6 +65,60 @@ func TestCopyStaticFiles(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Static file is not copied: %s", file)
 		}
+	}
+}
+
+func TestGenerateApib(t *testing.T) {
+	outDir, err := ioutil.TempDir("", "generateApib")
+	if err != nil {
+		t.Fatal("Failed to create tempdir")
+	}
+	defer os.RemoveAll(outDir)
+
+	if err := generateApib(userModel, outDir); err != nil {
+		t.Fatalf("Error should not be raised: %#v", err)
+	}
+
+	path := filepath.Join(outDir, "docs", "user.apib")
+	_, err = os.Stat(path)
+	if err != nil {
+		t.Fatalf("API Blueprint file is not generated: %s", path)
+	}
+
+	fixture := filepath.Join("_fixtures", "docs", "user.apib")
+
+	if !compareFiles(path, fixture) {
+		c1, _ := ioutil.ReadFile(fixture)
+		c2, _ := ioutil.ReadFile(path)
+		t.Fatalf("Failed to generate API Blueprint correctly.\nexpected:\n%s\nactual:\n%s", string(c1), string(c2))
+	}
+}
+
+func TestGenerateApibIndex(t *testing.T) {
+	models := []*Model{userModel}
+
+	outDir, err := ioutil.TempDir("", "generateApibIndex")
+	if err != nil {
+		t.Fatal("Failed to create tempdir")
+	}
+	defer os.RemoveAll(outDir)
+
+	if err := generateApibIndex(models, outDir); err != nil {
+		t.Fatalf("Error should not be raised: %#v", err)
+	}
+
+	path := filepath.Join(outDir, "docs", "index.apib")
+	_, err = os.Stat(path)
+	if err != nil {
+		t.Fatalf("API Blueprint file is not generated: %s", path)
+	}
+
+	fixture := filepath.Join("_fixtures", "docs", "index.apib")
+
+	if !compareFiles(path, fixture) {
+		c1, _ := ioutil.ReadFile(fixture)
+		c2, _ := ioutil.ReadFile(path)
+		t.Fatalf("Failed to generate API Blueprint correctly.\nexpected:\n%s\nactual:\n%s", string(c1), string(c2))
 	}
 }
 

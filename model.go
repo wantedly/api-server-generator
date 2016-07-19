@@ -2,5 +2,11 @@ package main
 
 type Model struct {
 	Name   string
-	Fields map[string]string
+	Fields []*ModelField
+}
+
+type ModelField struct {
+	Name     string
+	JSONName string
+	Type     string
 }
