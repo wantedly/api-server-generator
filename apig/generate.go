@@ -314,7 +314,7 @@ func generateDB(detail *Detail, outDir string) error {
 	return nil
 }
 
-func Generate(outDir, modelDir, targetFile string, all bool) int {
+func Generate(outDir, modelDir, targetFile string, all bool, namespace string) int {
 	outModelDir := filepath.Join(outDir, modelDir)
 	files, err := ioutil.ReadDir(outModelDir)
 	if err != nil {
@@ -439,6 +439,7 @@ func Generate(outDir, modelDir, targetFile string, all bool) int {
 		VCS:       vcs,
 		User:      user,
 		Project:   project,
+		Namespace: namespace,
 	}
 	if all {
 		if err := generateSkeleton(detail, outDir); err != nil {

@@ -19,7 +19,8 @@ const (
 type GenCommand struct {
 	Meta
 
-	all bool
+	all       bool
+	namespace string
 }
 
 func (c *GenCommand) Run(args []string) int {
@@ -38,7 +39,7 @@ func (c *GenCommand) Run(args []string) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	return apig.Generate(wd, modelDir, targetFile, c.all)
+	return apig.Generate(wd, modelDir, targetFile, c.all, c.namespace)
 }
 
 func (c *GenCommand) parseArgs(args []string) error {
@@ -46,6 +47,8 @@ func (c *GenCommand) parseArgs(args []string) error {
 
 	flag.BoolVar(&c.all, "a", false, "Generate all skelton")
 	flag.BoolVar(&c.all, "all", false, "Generate all skelton")
+	flag.StringVar(&c.namespace, "n", "", "Namespace of API")
+	flag.StringVar(&c.namespace, "namespace", "", "Namespace of API")
 
 	if err := flag.Parse(args); err != nil {
 		return err
@@ -65,7 +68,8 @@ Usage: apig gen
   Generates controllers and more based on models
 
 Options:
-  -all, -a          Generate all boilerplate including new command generated code
+  -all, -a                    Generate all boilerplate including new command generated code
+  -namespace=namespace, -n    Namespace of API (default: "") [Use with --all, -a option]
 `
 	return strings.TrimSpace(helpText)
 }
