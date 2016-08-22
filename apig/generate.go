@@ -2,6 +2,7 @@ package apig
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -352,62 +353,124 @@ func generateDB(detail *Detail, outDir string) error {
 	return nil
 }
 
-func Generate(outDir, modelDir, targetFile string, all bool) int {
-	outModelDir := filepath.Join(outDir, modelDir)
+func collectModels(outModelDir string) (Models, error) {
 	files, err := ioutil.ReadDir(outModelDir)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return 1
+		return nil, err
 	}
 
 	var models Models
 	var wg sync.WaitGroup
-	modelMap := make(map[string]*Model)
-	errCh := make(chan error)
-	modelsCh := make(chan []*Model)
-	doneCh := make(chan struct{})
-	go func() {
-		defer close(doneCh)
-		for _, file := range files {
-			wg.Add(1)
-			go func(f os.FileInfo) {
-				defer wg.Done()
-				if f.IsDir() {
-					return
-				}
-				if !strings.HasSuffix(f.Name(), ".go") {
-					return
-				}
+	errCh := make(chan error, 1)
+	done := make(chan bool, 1)
 
-				modelPath := filepath.Join(outModelDir, f.Name())
-				ms, err := parseModel(modelPath)
-				if err != nil {
-					errCh <- err
-				}
-				modelsCh <- ms
-			}(file)
-		}
-		wg.Wait()
-	}()
-
-	go func() {
-		defer close(errCh)
-	loop:
-		for {
-			select {
-			case ms := <-modelsCh:
-				for _, model := range ms {
-					models = append(models, model)
-					modelMap[model.Name] = model
-				}
-			case <-doneCh:
-				errCh <- nil
-				break loop
+	for _, file := range files {
+		wg.Add(1)
+		go func(f os.FileInfo) {
+			defer wg.Done()
+			if f.IsDir() {
+				return
 			}
-		}
-	}()
 
-	err = <-errCh
+			if !strings.HasSuffix(f.Name(), ".go") {
+				return
+			}
+
+			modelPath := filepath.Join(outModelDir, f.Name())
+			ms, err := parseModel(modelPath)
+			if err != nil {
+				errCh <- err
+				return
+			}
+
+			for _, model := range ms {
+				models = append(models, model)
+			}
+		}(file)
+	}
+
+	wg.Wait()
+	close(done)
+
+	select {
+	case <-done:
+	case err := <-errCh:
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return models, nil
+}
+
+func detectImportDir(targetPath string) (string, error) {
+	importPaths, err := parseImport(targetPath)
+	if err != nil {
+		return "", err
+	}
+
+	importDir := formatImportDir(importPaths)
+	if err != nil {
+		return "", err
+	}
+
+	switch {
+	case len(importDir) > 1:
+		return "", errors.New("Conflict import path. Please check 'main.go'.")
+	case len(importDir) == 0:
+		return "", errors.New("Can't refer import path. Please check 'main.go'.")
+	}
+
+	return importDir[0], nil
+}
+
+func generateCommonFiles(detail *Detail, outDir string) error {
+	var wg sync.WaitGroup
+	errCh := make(chan error, 1)
+	done := make(chan bool, 1)
+
+	for _, model := range detail.Models {
+		wg.Add(1)
+		go func(m *Model) {
+			defer wg.Done()
+			d := &Detail{
+				Model:     m,
+				ImportDir: detail.ImportDir,
+				VCS:       detail.VCS,
+				User:      detail.User,
+				Project:   detail.Project,
+			}
+
+			if err := generateApibModel(d, outDir); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				errCh <- err
+			}
+
+			if err := generateController(d, outDir); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				errCh <- err
+			}
+		}(model)
+	}
+
+	wg.Wait()
+	close(done)
+
+	select {
+	case <-done:
+	case err := <-errCh:
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func Generate(outDir, modelDir, targetFile string, all bool) int {
+	outModelDir := filepath.Join(outDir, modelDir)
+
+	models, err := collectModels(outModelDir)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
@@ -415,66 +478,21 @@ func Generate(outDir, modelDir, targetFile string, all bool) int {
 
 	sort.Sort(models)
 
-	importPaths, err := parseImport(filepath.Join(outDir, targetFile))
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return 1
-	}
-	importDir := formatImportDir(importPaths)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return 1
-	}
-	switch {
-	case len(importDir) > 1:
-		fmt.Fprintln(os.Stderr, "Conflict import path. Please check 'main.go'.")
-		return 1
-	case len(importDir) == 0:
-		fmt.Fprintln(os.Stderr, "Can't refer import path. Please check 'main.go'.")
-		return 1
+	modelMap := make(map[string]*Model)
+
+	for _, m := range models {
+		modelMap[m.Name] = m
 	}
 
-	dirs := strings.SplitN(importDir[0], "/", 3)
-	vcs := dirs[0]
-	user := dirs[1]
-	project := dirs[2]
-	errCh = make(chan error)
+	importDir, err := detectImportDir(filepath.Join(outDir, targetFile))
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
 
 	for _, model := range models {
 		// Check association, stdout "model.Fields[0].Association.Type"
 		resolveAssociate(model, modelMap, make(map[string]bool))
-	}
-
-	go func() {
-		defer close(errCh)
-		for _, model := range models {
-			wg.Add(1)
-			go func(m *Model) {
-				defer wg.Done()
-				d := &Detail{
-					Model:     m,
-					ImportDir: importDir[0],
-					VCS:       vcs,
-					User:      user,
-					Project:   project,
-				}
-				if err := generateApibModel(d, outDir); err != nil {
-					fmt.Fprintln(os.Stderr, err)
-					errCh <- err
-				}
-				if err := generateController(d, outDir); err != nil {
-					fmt.Fprintln(os.Stderr, err)
-					errCh <- err
-				}
-			}(model)
-		}
-		wg.Wait()
-	}()
-
-	err = <-errCh
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return 1
 	}
 
 	namespace, err := parseNamespace(filepath.Join(outDir, "router", "router.go"))
@@ -483,36 +501,49 @@ func Generate(outDir, modelDir, targetFile string, all bool) int {
 		return 1
 	}
 
+	dirs := strings.SplitN(importDir, "/", 3)
+	vcs, user, project := dirs[0], dirs[1], dirs[2]
 	detail := &Detail{
 		Models:    models,
-		ImportDir: importDir[0],
+		ImportDir: importDir,
 		VCS:       vcs,
 		User:      user,
 		Project:   project,
 		Namespace: namespace,
 	}
+
+	if err := generateCommonFiles(detail, outDir); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+
 	if all {
 		if err := generateSkeleton(detail, outDir); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			return 1
 		}
 	}
+
 	if err := generateApibIndex(detail, outDir); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
+
 	if err := generateRouter(detail, outDir); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
+
 	if err := generateDB(detail, outDir); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
+
 	if err := generateREADME(detail, outDir); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
+
 	fmt.Println("===> Generated...")
 	return 0
 }
