@@ -52,7 +52,7 @@ func (self *Parameter) SetPreloads(db *gorm.DB) *gorm.DB {
 	for _, preload := range strings.Split(self.Preloads, ",") {
 		a := strings.Split(preload, ".")
 		for i, s := range a {
-			a = append(a, name.CamelCase(s, true))
+			a[i] = name.CamelCase(s, true)
 		}
 		db = db.Preload(strings.Join(a, "."))
 	}
