@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"github.com/serenize/snaker"
+	"github.com/pascaldekloe/name"
 )
 
 func Connect() *gorm.DB {
@@ -46,12 +46,10 @@ func (self *Parameter) SetPreloads(db *gorm.DB) *gorm.DB {
 	}
 
 	for _, preload := range strings.Split(self.Preloads, ",") {
-		var a []string
-
-		for _, s := range strings.Split(preload, ".") {
-			a = append(a, snaker.SnakeToCamel(s))
+		a := strings.Split(preload, ".")
+		for i, s := range a {
+			a[i] = name.CamelCase(s, true)
 		}
-
 		db = db.Preload(strings.Join(a, "."))
 	}
 

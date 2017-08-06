@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/serenize/snaker"
+	"github.com/pascaldekloe/name"
 )
 
 type AssociationType int
@@ -145,7 +145,7 @@ func FieldToMap(model interface{}, fields map[string]interface{}) (map[string]in
 
 	if !contains(fields, "*") {
 		for field, _ := range fields {
-			if !vs.FieldByName(snaker.SnakeToCamel(field)).IsValid() {
+			if !vs.FieldByName(name.CamelCase(field, true)).IsValid() {
 				return nil, errors.New("Invalid Parameter. The specified field does not exist.")
 			}
 		}

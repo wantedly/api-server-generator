@@ -12,10 +12,9 @@ import (
 	"strings"
 	"sync"
 	"text/template"
-	"unicode"
 
 	"github.com/gedex/inflector"
-	"github.com/serenize/snaker"
+	"github.com/pascaldekloe/name"
 	"github.com/wantedly/apig/msg"
 	"github.com/wantedly/apig/util"
 )
@@ -34,9 +33,9 @@ var funcMap = template.FuncMap{
 	"requestParams":    requestParams,
 	"title":            strings.Title,
 	"toLower":          strings.ToLower,
-	"toLowerCamelCase": camelToLowerCamel,
-	"toOriginalCase":   camelToOriginal,
-	"toSnakeCase":      snaker.CamelToSnake,
+	"toLowerCamelCase": func(s string) string { return name.CamelCase(s, false) },
+	"toOriginalCase":   func(s string) string { return name.Delimit(s, ' ') },
+	"toSnakeCase":      name.SnakeCase,
 }
 
 var managedFields = []string{
@@ -133,35 +132,6 @@ func requestParams(fields []*Field) []*Field {
 	return params
 }
 
-// AccountName -> accountName
-func camelToLowerCamel(s string) string {
-	ss := strings.Split(s, "")
-	ss[0] = strings.ToLower(ss[0])
-
-	return strings.Join(ss, "")
-}
-
-// accountName -> account name
-func camelToOriginal(s string) string {
-	var words []string
-	var lastPos int
-	rs := []rune(s)
-
-	for i := 0; i < len(rs); i++ {
-		if i > 0 && unicode.IsUpper(rs[i]) {
-			words = append(words, strings.ToLower(s[lastPos:i]))
-			lastPos = i
-		}
-	}
-
-	// append the last word
-	if s[lastPos:] != "" {
-		words = append(words, strings.ToLower(s[lastPos:]))
-	}
-
-	return strings.Join(words, " ")
-}
-
 func generateApibIndex(detail *Detail, outDir string) error {
 	body, err := Asset(filepath.Join(templateDir, "index.apib.tmpl"))
 
@@ -218,7 +188,7 @@ func generateApibModel(detail *Detail, outDir string) error {
 		return err
 	}
 
-	dstPath := filepath.Join(outDir, "docs", snaker.CamelToSnake(detail.Model.Name)+".apib")
+	dstPath := filepath.Join(outDir, "docs", name.SnakeCase(detail.Model.Name)+".apib")
 
 	if !util.FileExists(filepath.Dir(dstPath)) {
 		if err := util.Mkdir(filepath.Dir(dstPath)); err != nil {
@@ -260,7 +230,7 @@ func generateController(detail *Detail, outDir string) error {
 		return err
 	}
 
-	dstPath := filepath.Join(outDir, "controllers", snaker.CamelToSnake(detail.Model.Name)+".go")
+	dstPath := filepath.Join(outDir, "controllers", name.SnakeCase(detail.Model.Name)+".go")
 
 	if !util.FileExists(filepath.Dir(dstPath)) {
 		if err := util.Mkdir(filepath.Dir(dstPath)); err != nil {

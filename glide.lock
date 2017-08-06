@@ -11,8 +11,8 @@ imports:
   version: 56b76bdf51f7708750eac80fa38b952bb9f32639
 - name: github.com/mitchellh/cli
   version: 168daae10d6ff81b8b1201b0a4c9607d7e9b82e3
-- name: github.com/serenize/snaker
-  version: 8824b61eca66d308fcb2d515287d3d7a28dba8d6
+- name: github.com/pascaldekloe/name
+  version: 2e1205259e1b191488ff906a0a081ee7d93c7e85
 - name: github.com/tcnksm/go-gitconfig
   version: 6411ba19847f20afe47f603328d97aaeca6def6f
 - name: github.com/wantedly/apig
