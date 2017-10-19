@@ -20,6 +20,15 @@ clean:
 deps: glide
 	go get github.com/jteeuwen/go-bindata/...
 	./glide install
+	
+	go get github.com/gin-gonic/gin
+	go install github.com/gin-gonic/gin
+
+	go get github.com/jinzhu/gorm
+	go install github.com/jinzhu/gorm
+
+	go get github.com/mattn/go-sqlite3
+	go install github.com/mattn/go-sqlite3
 
 glide:
 ifeq ($(shell uname),Darwin)
