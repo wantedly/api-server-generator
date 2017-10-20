@@ -1,6 +1,9 @@
 package apig
 
-import "path/filepath"
+import (
+	"path/filepath"
+	"strings"
+)
 
 func formatImportDir(paths []string) []string {
 	results := make([]string, 0, len(paths))
@@ -12,5 +15,16 @@ func formatImportDir(paths []string) []string {
 			results = append(results, dir)
 		}
 	}
+
+	if len(results) > 1 {
+		//Naive approache is to find one with /db, in the future if this doesn't work
+		//we can find one that matches the current path
+		for _, ipath := range paths {
+			if strings.Index(ipath, "/db") > 0 {
+				return []string{filepath.Dir(ipath)}
+			}
+		}
+	}
+
 	return results
 }
