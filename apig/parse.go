@@ -11,11 +11,10 @@ import (
 )
 
 func parseField(field *ast.Field) (*Field, error) {
-	if len(field.Names) != 1 {
-		return nil, errors.New("Failed to read model files. Please fix struct.")
+	fieldName := ""
+	if len(field.Names) == 1 {
+		fieldName = field.Names[0].Name
 	}
-
-	fieldName := field.Names[0].Name
 
 	var fieldType string
 
@@ -52,6 +51,11 @@ func parseField(field *ast.Field) (*Field, error) {
 				fieldType = "*" + x3.Name + "." + x2.Sel.Name
 			}
 		}
+	}
+
+	//for now only unnamed field we can handle is gorm.Model, maybe expand this later
+	if len(field.Names) != 1 && fieldType != "gorm.Model" {
+		return nil, errors.New("Failed to read model files. Please fix struct.")
 	}
 
 	var jsonName string
@@ -124,10 +128,10 @@ func parseModel(path string) ([]*Model, error) {
 						Name:   modelName,
 						Fields: fields,
 					})
+
 				}
 			}
 		}
-
 		return true
 	})
 

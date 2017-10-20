@@ -70,6 +70,44 @@ func TestParseModel(t *testing.T) {
 	}
 }
 
+func TestParseComplexModels(t *testing.T) {
+	path := filepath.Join("testdata", "parse", "complex_models.go")
+
+	models, err := parseModel(path)
+
+	if err != nil {
+		t.Fatalf("Failed to parse model file. error: %s", err)
+	}
+
+	if len(models) != 2 {
+		t.Fatalf("Number of parsed models is incorrect. expected: 2, actual: %d", len(models))
+	}
+
+	user := models[0]
+
+	if user.Name != "User" {
+		t.Fatalf("Incorrect model name. expected: User, actual: %s", user.Name)
+	}
+
+	expectedFields := []*Field{
+		&Field{
+			Name:     "",
+			JSONName: "",
+			Type:     "gorm.Model",
+		},
+		&Field{
+			Name:     "Name",
+			JSONName: "name",
+			Type:     "string",
+		},
+	}
+
+	for i, actual := range user.Fields {
+		if !fieldEquals(expectedFields[i], actual) {
+			t.Fatalf("Incorrect field. expected: %#v, actual: %#v", expectedFields[i], actual)
+		}
+	}
+}
 func TestParseImport(t *testing.T) {
 	path := filepath.Join("testdata", "parse", "router.go")
 
