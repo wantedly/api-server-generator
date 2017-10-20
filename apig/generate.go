@@ -561,6 +561,14 @@ func detectImportDir(targetPath string) (string, error) {
 	importDir := formatImportDir(importPaths)
 
 	if len(importDir) > 1 {
+		//If we have more then one import, lets see if one matches
+		for _, ipath := range importPaths {
+			if strings.Index(ipath, "/db") > 0 {
+				fmt.Printf("Conflict import path. Guessing -%s\n", ipath)
+				return ipath, nil
+			}
+		}
+
 		return "", errors.New("Conflict import path. Please check 'main.go'.")
 	}
 
