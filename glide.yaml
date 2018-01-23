@@ -1,6 +1,0 @@
-package: github.com/wantedly/apig
-import:
-- package: github.com/gedex/inflector
-- package: github.com/tcnksm/go-gitconfig
-- package: github.com/serenize/snaker
-- package: github.com/mitchellh/cli

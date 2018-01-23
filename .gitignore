@@ -31,7 +31,7 @@ _testmain.go
 
 bindata.go
 
-/glide
+/dep
 /vendor/
 
 /_example/_example
