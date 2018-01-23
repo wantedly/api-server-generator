@@ -18,6 +18,7 @@ clean:
 
 .PHONY: deps
 deps: dep
+	go get github.com/jteeuwen/go-bindata/...
 	./dep ensure
 
 dep:
